@@ -63,7 +63,7 @@ async def proxy_request(request: ProxyRequest) -> dict:
     latency_ms = (time.monotonic() - start) * 1000
     body = resp.json()
 
-    usage = body.get("usage") or {}
+    usage = body.get("usage") if isinstance(body.get("usage"), dict) else {}
     await log_telemetry(
         TelemetryEvent(
             request_id=request_id,
@@ -99,6 +99,32 @@ async def proxy_stream(request: ProxyRequest):
         json={**_upstream_body(request), "stream": True},
         headers=_auth_headers(),
     ) as upstream:
+        latency_ms = (time.monotonic() - start) * 1000
+
+        if upstream.status_code != 200:
+            error_body = await upstream.aread()
+            try:
+                error_detail = json.loads(error_body)
+            except (json.JSONDecodeError, ValueError):
+                error_detail = {"message": error_body.decode(errors="replace")}
+            await log_telemetry(
+                TelemetryEvent(
+                    request_id=request_id,
+                    timestamp=datetime.now(timezone.utc).isoformat(),
+                    agent_id=request.agent_id,
+                    session_id=request.session_id,
+                    model=request.model,
+                    tokens_in=0,
+                    tokens_out=0,
+                    latency_ms=latency_ms,
+                    status_code=upstream.status_code,
+                    upstream_url=settings.STRATA_DEFAULT_UPSTREAM,
+                )
+            )
+            yield f"data: {json.dumps({'error': error_detail})}\n\n"
+            yield "data: [DONE]\n\n"
+            return
+
         async for line in upstream.aiter_lines():
             if line.startswith("data: "):
                 chunk_data = line[6:]
@@ -107,7 +133,7 @@ async def proxy_stream(request: ProxyRequest):
                     break
                 try:
                     chunk = json.loads(chunk_data)
-                    if chunk.get("usage"):
+                    if isinstance(chunk.get("usage"), dict):
                         usage = chunk["usage"]
                 except json.JSONDecodeError:
                     pass
@@ -126,7 +152,7 @@ async def proxy_stream(request: ProxyRequest):
             tokens_in=usage.get("prompt_tokens", 0),
             tokens_out=usage.get("completion_tokens", 0),
             latency_ms=latency_ms,
-            status_code=200,
+            status_code=upstream.status_code,
             upstream_url=settings.STRATA_DEFAULT_UPSTREAM,
         )
     )

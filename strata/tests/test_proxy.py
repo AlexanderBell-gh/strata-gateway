@@ -81,6 +81,8 @@ class TestChatCompletionsStreaming:
             async def __aenter__(self):
                 self._stream = MagicMock()
                 self._stream.aiter_lines = mock_aiter_lines
+                self._stream.status_code = 200
+                self._stream.aread = AsyncMock(return_value=b"")
                 return self._stream
 
             async def __aexit__(self, *args):
@@ -119,3 +121,61 @@ class TestModels:
         resp = await client.get("/v1/models")
         assert resp.status_code == 200
         assert "data" in resp.json()
+
+    @patch("strata.core.proxy.get_client")
+    async def test_models_upstream_error_returns_502(self, mock_get_client, client):
+        mock_httpx = AsyncMock()
+        mock_httpx.get = AsyncMock(side_effect=Exception("connection refused"))
+        mock_get_client.return_value = mock_httpx
+
+        resp = await client.get("/v1/models")
+        assert resp.status_code == 502
+        body = resp.json()
+        assert "error" in body
+        assert body["error"]["code"] == "upstream_error"
+
+
+class TestConcurrency:
+    @patch("strata.core.proxy.log_telemetry", new_callable=AsyncMock)
+    @patch("strata.core.proxy.get_client")
+    async def test_concurrent_requests(self, mock_get_client, mock_log, client):
+        import asyncio
+
+        mock_resp = MagicMock()
+        mock_resp.json.return_value = {
+            "id": "chatcmpl-123",
+            "object": "chat.completion",
+            "created": 1700000000,
+            "model": "gpt-4",
+            "choices": [
+                {
+                    "index": 0,
+                    "message": {"role": "assistant", "content": "Hello!"},
+                    "finish_reason": "stop",
+                }
+            ],
+            "usage": {"prompt_tokens": 10, "completion_tokens": 5, "total_tokens": 15},
+        }
+        mock_resp.status_code = 200
+
+        mock_httpx = AsyncMock()
+        mock_httpx.post = AsyncMock(return_value=mock_resp)
+        mock_get_client.return_value = mock_httpx
+
+        payload = {
+            "model": "gpt-4",
+            "messages": [{"role": "user", "content": "Hi"}],
+            "stream": False,
+        }
+
+        tasks = [
+            client.post("/v1/chat/completions", json=payload)
+            for _ in range(50)
+        ]
+        results = await asyncio.gather(*tasks)
+
+        for resp in results:
+            assert resp.status_code == 200
+            assert "strata" in resp.json()
+
+        assert mock_log.call_count == 50
