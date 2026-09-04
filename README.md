@@ -135,7 +135,7 @@ uv run uvicorn strata.main:app --reload
 
 ## Roadmap
 
-- **Phase 1** (current) — Core proxy engine with streaming, telemetry, health checks
+- **Phase 1** — Core proxy engine with streaming, telemetry, health checks ✅
 - **Phase 2** — Security layer: PII scrubbing, injection guard, circuit breaker
 - **Phase 3** — Compliance: credential injection, DUAA audit logging
 - **Phase 4** — Dashboard: React SPA with live feed, audit trail, video recording
