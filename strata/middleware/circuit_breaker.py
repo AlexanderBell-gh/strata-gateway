@@ -132,4 +132,5 @@ class CircuitBreaker:
                             pass
                     await send(message)
 
+        scope.setdefault("asgi", {})["spec_version"] = "2.4"
         await self.app(scope, receive_cached, send_wrapped)

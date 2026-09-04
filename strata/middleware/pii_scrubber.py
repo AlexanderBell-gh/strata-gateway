@@ -50,6 +50,7 @@ class PIIScrubber:
             return {"type": "http.request", "body": body, "more_body": False}
 
         if is_streaming:
+            scope.setdefault("asgi", {})["spec_version"] = "2.4"
             await self.app(scope, receive_cached, send)
             return
 

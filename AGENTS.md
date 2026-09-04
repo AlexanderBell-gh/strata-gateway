@@ -35,7 +35,7 @@ Run the test suite:
 uv run pytest strata/tests/ -v
 ```
 
-22 of 23 tests should pass. The streaming proxy test (`test_stream_yields_sse_chunks`) hangs due to an ASGI transport limitation — see Known Issues.
+All 23 tests should pass.
 
 ## Repository structure
 
@@ -76,7 +76,7 @@ strata/
 - **Circuit breaker detects streaming** via `content-type: text/event-stream` header. Streaming chunks are forwarded directly (no accumulation/token tracking). Non-streaming chunks are accumulated and parsed for usage.
 - **Test env vars must be set before imports.** `conftest.py` sets `STRATA_UPSTREAM_API_KEY` at module level. Circuit breaker tests use `monkeypatch.setattr` to override `STRATA_MAX_TOKENS_PER_SESSION` because the `Settings` singleton is created at import time.
 - **Circuit breaker tests patch `log_telemetry`** at `strata.middleware.circuit_breaker.log_telemetry`, not just `strata.core.proxy.log_telemetry`. The circuit breaker imports `log_telemetry` directly from `strata.telemetry.logger`.
-- **Streaming proxy test hangs** in `httpx.ASGITransport` when middleware consumes the request body. Works in production with uvicorn. See PHASE2-FIXES.md Issue 4 for details.
+- **Streaming proxy test was fixed** by setting `scope["asgi"]["spec_version"] = "2.4"` in each middleware. This prevents Starlette `StreamingResponse` from calling `listen_for_disconnect(receive)` which hung when `receive` was replaced with `receive_cached`. See PHASE2-FIXES.md Issue 4.
 - **Database is not initialized in tests.** Tests that trigger `log_telemetry` must mock it to avoid `RuntimeError: Database not initialised`.
 
 ## Discovering recent changes

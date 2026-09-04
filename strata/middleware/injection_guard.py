@@ -104,4 +104,5 @@ class InjectionGuard:
         async def receive_cached():
             return {"type": "http.request", "body": body, "more_body": False}
 
+        scope.setdefault("asgi", {})["spec_version"] = "2.4"
         await self.app(scope, receive_cached, send)
