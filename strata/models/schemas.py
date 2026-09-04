@@ -54,6 +54,8 @@ class TelemetryEvent(BaseModel):
     model: str
     tokens_in: int
     tokens_out: int
+    redacted_tokens: int = 0
     latency_ms: float
     status_code: int
     upstream_url: str
+    sub_status: str = ""

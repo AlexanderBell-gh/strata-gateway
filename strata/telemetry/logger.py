@@ -11,8 +11,9 @@ async def log_telemetry(event: TelemetryEvent) -> None:
     await db.execute(
         """INSERT INTO telemetry
            (request_id, timestamp, agent_id, session_id, model,
-            tokens_in, tokens_out, latency_ms, status_code, upstream_url)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            tokens_in, tokens_out, redacted_tokens, latency_ms, status_code,
+            upstream_url, sub_status)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
         (
             event.request_id,
             event.timestamp,
@@ -21,9 +22,11 @@ async def log_telemetry(event: TelemetryEvent) -> None:
             event.model,
             event.tokens_in,
             event.tokens_out,
+            event.redacted_tokens,
             event.latency_ms,
             event.status_code,
             event.upstream_url,
+            event.sub_status,
         ),
     )
     await db.commit()
