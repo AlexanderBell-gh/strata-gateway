@@ -71,6 +71,7 @@ All configuration is via environment variables (validated at startup with pydant
 | `STRATA_MAX_CONCURRENT` | `100` | HTTPX connection pool size |
 | `STRATA_LOG_LEVEL` | `INFO` | Logging level |
 | `STRATA_DB_PATH` | `./data/strata.db` | SQLite database file path |
+| `STRATA_MAX_TOKENS_PER_SESSION` | `50000` | Circuit breaker token limit per session |
 
 Copy `.env.example` to `.env` and fill in your API key:
 
@@ -90,6 +91,8 @@ Every proxied request is logged to SQLite with the following data:
 - `latency_ms` — total proxy latency
 - `status_code` — upstream response code
 - `upstream_url` — upstream base URL
+- `redacted_tokens` — number of PII tokens redacted (Phase 2)
+- `sub_status` — sub-status code (e.g., `injection_blocked`, `circuit_open`) (Phase 2)
 
 Query the telemetry database directly:
 
@@ -104,10 +107,14 @@ strata-gateway/
 ├── pyproject.toml
 ├── .env.example
 └── strata/
-    ├── main.py              # FastAPI app, lifespan, routes
+    ├── main.py              # FastAPI app, lifespan, routes, streaming PII scrubber
     ├── config.py            # pydantic-settings configuration
     ├── core/
     │   └── proxy.py         # Proxy endpoint + streaming logic
+    ├── middleware/
+    │   ├── injection_guard.py   # Prompt injection detection (keyword matching)
+    │   ├── pii_scrubber.py      # PII scrubbing (NHS, postcodes, MR/MS)
+    │   └── circuit_breaker.py   # Per-session token tracking, 429 blocker
     ├── models/
     │   └── schemas.py       # Pydantic request/response models
     ├── db/
@@ -115,9 +122,12 @@ strata-gateway/
     │   └── tables.py        # Database schema
     ├── telemetry/
     │   └── logger.py        # Telemetry writer
-    ├── middleware/           # Security layers (Phase 2+)
     └── tests/
-        └── test_proxy.py    # Test suite
+        ├── conftest.py      # Shared fixtures
+        ├── test_pii.py      # PII scrubber tests
+        ├── test_injection.py # Injection guard tests
+        ├── test_circuit.py  # Circuit breaker tests
+        └── test_proxy.py    # Proxy integration tests
 ```
 
 ## Development
@@ -126,8 +136,8 @@ strata-gateway/
 # Install with dev dependencies
 uv sync --extra dev
 
-# Run tests
-uv run pytest -v
+# Run tests (22 of 23 pass — streaming test hangs in test harness)
+uv run pytest strata/tests/ -v
 
 # Run with auto-reload
 uv run uvicorn strata.main:app --reload
@@ -136,7 +146,7 @@ uv run uvicorn strata.main:app --reload
 ## Roadmap
 
 - **Phase 1** — Core proxy engine with streaming, telemetry, health checks ✅
-- **Phase 2** — Security layer: PII scrubbing, injection guard, circuit breaker
+- **Phase 2** — Security layer: PII scrubbing, injection guard, circuit breaker 🟡 (non-streaming works, streaming test hangs in test harness)
 - **Phase 3** — Compliance: credential injection, DUAA audit logging
 - **Phase 4** — Dashboard: React SPA with live feed, audit trail, video recording
 

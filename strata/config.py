@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     STRATA_MAX_CONCURRENT: int = 100
     STRATA_LOG_LEVEL: str = "INFO"
     STRATA_DB_PATH: str = "./data/strata.db"
+    STRATA_MAX_TOKENS_PER_SESSION: int = 50_000
 
     @model_validator(mode="after")
     def validate_api_key(self) -> "Settings":
