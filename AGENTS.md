@@ -92,9 +92,9 @@ git diff --cached             # staged changes
 
 ## External Documentation
 
-- Phase specs: `/home/wsl/Projects/markdowns/Strata-Markdowns/Planning/`
-- Rules & guardrails: `/home/wsl/Projects/markdowns/Strata-Markdowns/Planning/RULES.md`
-- Phase 2 fixes: `/home/wsl/Projects/markdowns/Strata-Markdowns/Planning/PHASE2-FIXES.md`
+- Phase specs: `/home/wsl/Projects/markdowns/strata-markdowns/planning/`
+- Rules & guardrails: `/home/wsl/Projects/markdowns/strata-markdowns/planning/RULES.md`
+- Phase 2 fixes: `/home/wsl/Projects/markdowns/strata-markdowns/planning/PHASE2-FIXES.md`
 
 ## Session Lifecycle Rules
 
@@ -103,7 +103,7 @@ Whenever the user says **"lets finish up and update the docs"**, you MUST perfor
 
 1. **Update MEMORY.md:**
    * Insert a reverse-chronological entry directly under the `## Session History` header.
-   * Location: `/home/wsl/Projects/markdowns/Strata-Markdowns/MEMORY.md`
+   * Location: `/home/wsl/Projects/markdowns/strata-markdowns/MEMORY.md`
    
  ### **Format:**
      ### 📝 [DD-MM-YYYY] @ [GMT HH:MM 24-hr] | [Short Session Title]
@@ -114,7 +114,7 @@ Whenever the user says **"lets finish up and update the docs"**, you MUST perfor
 2. **Update CONTEXT.md:**
    * Review the current architectural state, tech stack details, or data flows.
    * Update any outdated sections to reflect the exact state of the codebase at the end of this session.
-   * Location: `/home/wsl/Projects/markdowns/Strata-Markdowns/CONTEXT.md`
+   * Location: `/home/wsl/Projects/markdowns/strata-markdowns/CONTEXT.md`
 
 3. **Update README.md:**
    * Review `README.md`. If the session introduced new features, configuration keys (`.env`), or changed installation/build commands, update those specific sections. Do not alter stable project descriptions unless explicitly relevant.
